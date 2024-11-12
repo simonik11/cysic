@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Этот скрипт настроит окружение для cysic-verifier на Linux
+# Данный скрипт автоматически выполнит установку зависимостей и запуск приложения
+
+# Убедитесь, что вы запускаете этот скрипт с правами суперпользователя (root)
+
+# Проверка наличия необходимых зависимостей
+echo "Проверка наличия зависимостей..."
+
+# Обновление и установка необходимых пакетов
+sudo apt update && sudo apt upgrade -y
+
+# Установка зависимостей
+sudo apt install -y curl git build-essential cmake pkg-config libssl-dev
+
+# Установка Rust (если еще не установлен)
+if ! command -v rustc &> /dev/null
+then
+    echo "Rust не найден, установка..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    source $HOME/.cargo/env
+else
+    echo "Rust уже установлен"
+fi
+
+# Клонирование репозитория cysic-verifier
+echo "Клонирование репозитория cysic-verifier..."
+git clone https://github.com/cysic-labs/phase2_libs.git ~/cysic-verifier
+cd ~/cysic-verifier
+
+# Скачивание нужного файла vk_chunk.vkey
+echo "Скачивание файла vk_chunk.vkey..."
+mkdir -p /root/.scroll_prover/assets
+curl -o /root/.scroll_prover/assets/vk_chunk.vkey https://circuit-release.s3.us-west-2.amazonaws.com/release-v0.13.1/vk_chunk.vkey
+
+# Установка зависимостей для проекта
+echo "Установка зависимостей для cysic-verifier..."
+cargo build --release
+
+# Проверка конфигурации
+echo "Проверка конфигурации..."
+if [ ! -f ./config.yaml ]; then
+    echo "Файл конфигурации config.yaml не найден. Пожалуйста, создайте его."
+    exit 1
+fi
+
+# Запуск cysic-verifier
+echo "Запуск cysic-verifier..."
+./target/release/cysic-verifier --config ./config.yaml
+
+# Вывод ошибок, если они возникнут
+if [ $? -ne 0 ]; then
+    echo "Произошла ошибка при запуске cysic-verifier. Проверьте логи для дополнительной информации."
+    exit 1
+fi
+
+echo "cysic-verifier запущен успешно."
