@@ -30,7 +30,7 @@ install_dependencies() {
         fi
     fi
 
-    if ! sudo apt-get install -y nodejs; then
+    if ! sudo apt-get install -y nodejs; then  # j33
         echo "Failed to install Node.js, exiting."
         exit 1
     fi
